@@ -53,6 +53,21 @@ Drop_table()
     echo "drop table"
 }
 
+InsertInto()
+{
+    echo "insert"
+}
+
+DeleteFrom()
+{
+    echo "delete"
+}
+
+UpdateRecord()
+{
+    echo "update"
+}
+
 ReadDbNameFromUSer(){
     echo "Enter Database name: "
 	read DBname
