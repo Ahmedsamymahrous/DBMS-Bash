@@ -1,140 +1,248 @@
 #!/bin/bash 
 
+mkdir DBs   # To create directory in the first time .. in the second time it will generate an error but it will disapear because (clear) in raw NO. 5!
 cd DBs
-function Create_DB(){ 
-    if test -d $1
+clear
+
+function Create_DB
+{ 
+    ReadDBNameFromUSer
+    if test -d $DBname
     then
-       echo "$1 is already exists!"
+       echo -e "$DBname already exists!\n"
     else
-        mkdir $1 
-        echo "Database $1 has been created successfully!"
+        mkdir $DBname
+        echo -e "Database $DBname has been created successfully!\n"
     fi
+
+    MainDB
 }
 
-Use_DB(){
-  if test -d $1
-  then
-       cd $1
-       echo "Done."
-       MainTables
-  else
-     echo "$1 doesn't exist!"
-  fi
-}
-
-Drop_DB(){
-   if test -d $1
+function Open_DB
+{
+    ReadDBNameFromUSer  
+    if test -d $DBname
     then
-        rm -r $1
-        echo "Database $1 has been removed successfully!"
-  else
-     echo "$1 doesn't exist!"
-  fi
+        cd $DBname
+        pwd
+        echo "Done."
+        MainTables
+    else
+        echo -e "$DBname doesn't exist!\n"
+    fi
+
+    MainDB
 }
 
-Show_DBs(){
+function Drop_DB
+{
+    ReadDBNameFromUSer
+    if [ -d $DBname ]
+    then 
+        echo "Are you sure? y|n "
+        read choice
+        if [ $choice = "y" ]
+        then
+            rm -r $DBname
+            echo -e "Database $DBname has been removed successfully :)\n\n"
+        else
+            MainDB
+        fi
+    else
+        echo -e "$DBname doesn't exist!\n\n"
+    fi  
+
+    MainDB       
+}
+
+function list_DBs
+{
     if [ "$(ls -A)" ]
     then
-        ls
+        echo -e "Available Database/s: ";ls
+        echo -e "\n"  
     else
         echo "No Databases to show!"
-    fi 
+    fi
+
+    MainDB 
 }
 
-Create_table(){
-    echo "create table"
-}
-Show_tables()
+function ReadDBNameFromUSer
 {
-    echo "show tables"
-}
-Drop_table()
-{
-    echo "drop table"
+    echo -e "Enter Database name: \c"
+	read DBname    
 }
 
-InsertInto()
-{
-    echo "insert"
+function MainDB
+{  
+    select choice in 'Create Database' 'Open Database' 'Drop Database' 'List Database' 'Exit'
+    do 
+        case $REPLY in 
+            1 ) Create_DB
+            ;;
+            2 ) Open_DB 
+            ;;
+            3 ) Drop_DB
+            ;;
+            4 ) list_DBs 
+            ;;
+            5 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; MainDB
+        esac
+        
+    done
 }
 
-DeleteFrom()
+function List_All_Tables
 {
-    echo "delete"
+    ls ; MainTables
 }
 
-UpdateRecord()
+function Open_Certain_table
 {
-    echo "update"
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then
+        cat $Tablename
+       ####   Here we gonna Call the Record stage   ####
+    else
+        echo -e "$Tablename doesn't exist!\n"
+    fi
+
+    MainTables
 }
 
-ReadDbNameFromUSer(){
-    echo "Enter Database name: "
-	read DBname
+function Create_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then
+        echo -e "$Tablename already exist!\n"
+    else
+        echo -e "Number of Columns: \c"
+        read columnsNumber
+        seperator="|"
+        raw_seperator="\n"
+        pKey=""
+        counter=1
+        metaData="Column Name"$seperator"Type"$seperator"Primary Key"
+        while [ $counter -le $columnsNumber ]
+        do
+            echo -e "Name of Column Number ($counter): \c"
+            read columnName
+
+            echo -e "Type of Column $columnName: "
+            select type in "integer" "string"
+            do
+                case $type in
+                    integer ) columnType="integer";
+                    break
+                    ;;
+                    string ) columnType="string";
+                    break
+                    ;;
+                    * ) echo "Invalid Input :(" 
+                    ;;
+                esac
+            done
+
+            if [[ $pKey == "" ]]; 
+            then
+                echo -e "Make Primary Key ?"
+                select var in "yes" "no"
+                do
+                    case $var in
+                        yes ) pKey="PK"; metaData+=$raw_seperator$columnName$seperator$columnType$seperator$pKey;
+                        break
+                        ;;
+                        no ) metaData+=$raw_seperator$columnName$seperator$columnType$seperator"";
+                        break
+                        ;;
+                        * ) echo "Invalid Input :(" 
+                        ;;
+                    esac
+                done
+            else
+                metaData+=$raw_seperator$columnName$seperator$columnType$seperator""
+            fi
+
+            if [[ $counter == $columnsNumber ]]; 
+            then
+                data=$data$columnName
+            else
+                data=$data$columnName$seperator
+            fi
+
+            ((counter++))
+
+        done
+        
+        touch .$Tablename
+        echo -e $metaData >> .$Tablename
+        touch $Tablename
+        echo -e $data >> $Tablename
+
+        if [[ $? == 0 ]]
+        then
+            echo -e "Table Created Successfully :)\n"
+        else
+            echo -e "NOT Successful Creation of Table $Tablename :(\n"
+        fi
+    fi
+
+    MainTables
 }
-ReadTableNameFromUSer(){
-    echo "Enter Table name: "
+
+function Drop_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then 
+        echo "Are you sure? y|n "
+        read choice
+        if [ $choice = "y" ]
+        then
+            rm $Tablename .$Tablename
+            echo -e "$Tablename Table has been removed successfully :)\n\n"
+        else
+            clear; MainTables
+        fi
+    else
+        echo -e "$Tablename Table doesn't exist!\n\n"
+    fi  
+
+    MainTables
+}
+
+function ReadTableNameFromUSer
+{
+    echo -e "Enter Table name: \c"
 	read Tablename
 }
-MainDB(){  
-   local c
-   select choice in 'Create Database' 'Open Datsbase' 'Drop Database' 'List Database'
-   do 
-      case $REPLY in 
-           1) ReadDbNameFromUSer
-              Create_DB $DBname 
-              ;;
-           2) ReadDbNameFromUSer
-              Use_DB $DBname 
-              ;;
-           3) ReadDbNameFromUSer
-              echo "Are you sure? y|n "
-              read c
-              if [ $c = "y" ]
-              then
-                    Drop_DB $DBname  
-              else
-                   continue
-              fi
-              ;;
-           4) Show_DBs 
-              ;;
-            esac
-            echo "Would u like to continue? y|n "
-            read c
-            if [ $c = "n" ]
-            then
-                exit 0        
-            fi
-        done
-}
-MainTables()
+
+function MainTables
 {
-    local c
-    select choice in 'Create Table' 'Show Tables' 'Drop Table'
-    do 
-      case $REPLY in 
-           1)ReadTableNameFromUSer
-             Create_table $Tablename
-             ;;
-           2)Show_tables 
-             ;;
-           3) ReadTableNameFromUSer
-              echo "Are you sure? y|n "
-              read c
-              if [ $c = "y" ]
-              then
-                    Drop_table $Tablename
-              else
-                  continue
-              fi
+    select choice in 'List All Tables' 'Open Certain Table' 'Create Table' 'Drop Table' 'Back to DB Menu' 'Exit'
+    do
+        case $REPLY in 
+            1 ) List_All_Tables 
+            ;;
+            2 ) Open_Certain_table 
+            ;;
+            3 ) Create_table 
+            ;; 
+            4 ) Drop_table
+            ;;
+            5 ) clear; cd ../; MainDB
+            ;;
+            6 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; MainTables  
         esac
-        echo "Would u like to continue? y|n "
-        read c
-        if [ $c = "n" ]
-        then
-            exit 0        
-        fi
-   done
+        
+    done
 }
+
 MainDB
