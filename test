@@ -1,0 +1,443 @@
+#!/bin/bash 
+
+shopt -s extglob
+export LC_COLLATE=C
+
+mkdir DBs   # To create directory in the first time .. in the second time it will generate an error but it will disapear because (clear) in raw NO. 5!
+cd DBs
+clear
+
+function Create_DB
+{ 
+    ReadDBNameFromUSer
+    if test -d $DBname
+    then
+       echo -e "$DBname already exists!\n"
+    else
+        mkdir $DBname
+        echo -e "Database $DBname has been created successfully!\n"
+    fi
+
+    MainDB
+}
+
+# Gate Functiion
+function Open_DB
+{
+    ReadDBNameFromUSer  
+    if test -d $DBname
+    then
+        cd $DBname
+        echo -e "\n>> You are Now in ($DBname) Database\n   Select Your Choice:\n"
+        MainTables $DBname  # Enter into Tables Stage
+    else
+        echo -e "\n$DBname doesn't exist!\n"
+    fi
+
+    MainDB
+}
+
+function Drop_DB
+{
+    ReadDBNameFromUSer
+    if [ -d $DBname ]
+    then 
+        echo "Are you sure? y|n "
+        read choice
+        if [ $choice = "y" ]
+        then
+            rm -r $DBname
+            echo -e "Database $DBname has been removed successfully!\n\n"
+        else
+            MainDB
+        fi
+    else
+        echo -e "$DBname doesn't exist!\n\n"
+    fi  
+
+    MainDB       
+}
+
+function list_DBs
+{
+    if [ "$(ls -A)" ]
+    then
+        echo -e "Available Database/s: ";ls
+        echo -e "\n"  
+    else
+        echo "No Databases to show!"
+    fi
+
+    MainDB 
+}
+
+function ReadDBNameFromUSer
+{
+    echo -e "Enter Database name: \c"
+	read DBname    
+}
+
+function MainDB
+{  
+    select choice in 'Create Database' 'Open Database' 'Drop Database' 'List Database' 'Exit'
+    do 
+        case $REPLY in 
+            1 ) Create_DB
+            ;;
+            2 ) Open_DB 
+            ;;
+            3 ) Drop_DB
+            ;;
+            4 ) list_DBs 
+            ;;
+            5 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; MainDB
+        esac
+        
+    done
+}
+
+function List_All_Tables
+{
+    ls; MainTables
+}
+
+# Gate Function
+function Open_Certain_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then
+        cat $Tablename
+        Record_stage $Tablename  #Enter into Record Stage
+    else
+        echo -e "$Tablename doesn't exist!\n"
+    fi
+
+    MainTables
+}
+
+function Create_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then
+        echo -e "$Tablename already exist!\n"
+    else
+        echo -e "Number of Columns: \c"
+        read columnsNumber
+
+        seperator="|"
+        raw_seperator="\n"
+        pkey=""
+
+        metaData_def="Column Name"$seperator"Type"$seperator"Primary Key"$raw_seperator
+        
+
+        for (( counter = 0; counter < $columnsNumber; counter++ ));
+        do
+            _counter=0
+            echo -e "Name of Column Number "$counter": \c"
+            read columnName
+            data[$counter]=$columnName
+            metaData_data[$counter,$_counter]=$columnName # metaData_data[0,0] = id
+            ((_counter++))
+
+            echo -e "Type of Column $columnName: " 
+            select type in "integer" "string"
+            do
+                case $type in
+                    integer ) columnType="int"; 
+                    break
+                    ;;
+                    string ) columnType="str";
+                    break
+                    ;;
+                    * ) echo "Invalid Input :(" 
+                    ;;
+                esac
+            done
+            metaData_data[$counter,$_counter]=$columnType # metaData_data[0,1] = type(int or str)
+            ((_counter++))
+
+            if [[ $pKey == "" ]]; 
+            then
+                echo -e "Make Primary Key ?"
+                select var in "yes" "no"
+                do
+                    case $var in
+                        yes ) pKey="PK"; metaData_data[$counter,$_counter]="$pKey";
+                        break
+                        ;;
+                        no ) metaData_data[$counter,$_counter]="";
+                        break
+                        ;;
+                        * ) echo "Invalid Input :(" 
+                        ;;
+                    esac
+                done
+            else
+                metaData_data[$counter,$_counter]="";
+            fi 
+        done
+        
+        # Print MetaData
+        touch .$Tablename
+        echo -e $metaData_def >> .$Tablename
+        for (( counter = 0; counter < $columnsNumber; counter++ ));
+        do  
+            for (( _counter = 0; _counter < $columnsNumber; _counter++ ));
+            do
+                echo -n -e "${metaData_data[$counter,$_counter]}" "$seperator" >> .$Tablename
+            done  
+            echo -n -e "$raw_seperator" >> .$Tablename  
+        done
+
+        # Print Actual Data
+        touch $Tablename
+        let stop=$columnsNumber-1
+        for (( counter = 0; counter < $columnsNumber; counter++ )); 
+        do
+            if [[ $counter == $stop ]]
+            then
+                echo -n "${data[$counter]}" "$seperator" >> $Tablename
+                echo -n -e "$raw_seperator" >> $Tablename
+            else
+                echo -n "${data[$counter]}" "$seperator" >> $Tablename
+            fi
+        done
+        # Check The Process
+        if [[ $? == 0 ]]
+        then
+            echo -e "Table Created Successfully :)\n"
+        else
+            echo -e "NOT Successful Creation of Table $Tablename :(\n"
+        fi
+    fi      
+
+    MainTables
+}
+
+function Drop_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then 
+        echo "Are you sure? y|n "
+        read choice
+        if [ $choice = "y" ]
+        then
+            rm $Tablename .$Tablename
+            echo -e "$Tablename Table has been removed successfully :)\n\n"
+        else
+            clear; MainTables
+        fi
+    else
+        echo -e "$Tablename Table doesn't exist!\n\n"
+    fi  
+
+    MainTables
+}
+
+function ReadTableNameFromUSer
+{
+    echo -e "Enter Table name: \c"
+	read Tablename
+}
+
+function MainTables
+{
+    select choice in 'List All Tables' 'Open Certain Table' 'Create Table' 'Drop Table' 'Back to DB Menu' 'Exit'
+    do
+        case $REPLY in 
+            1 ) List_All_Tables 
+            ;;
+            2 ) Open_Certain_table 
+            ;;
+            3 ) Create_table 
+            ;; 
+            4 ) Drop_table
+            ;;
+            5 ) clear; cd ../; MainDB
+            ;;
+            6 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; MainTables  
+        esac
+        
+    done
+}
+
+### ### ### ### ### ### ### ### ### ### ### ### ### ###
+### ### ### ### ### ### ### ### ### ### ### ### ### ###
+### ### ### ### ### ### ### ### ### ### ### ### ### ###
+
+function Record_stage
+{
+    Tablename=$1
+    select choice in 'Insert New Record' 'Delete Record' 'Update Certain Cell' 'Back to Tables Menu' 'Exit'
+    do
+        case $REPLY in 
+            1 ) insert $Tablename
+            ;;
+            2 ) delete_record $Tablename
+            ;;
+            3 ) Update_cell $Tablename
+            ;; 
+            4 ) clear; MainTables  
+            ;;
+            5 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; Record_stage $Tablename
+        esac
+    done
+}
+
+
+
+function insert 
+{
+    Tablename=$1
+    columnsNumber=`awk 'END{print NR}' .$Tablename`
+    seperator="|"
+    raw_seperator="\n"
+    for (( i = 2; i <= $columnsNumber; i++ )); 
+    do
+        columnName=$(awk 'BEGIN{FS="|"}{ if(NR=='$i') print $1}' .$Tablename)
+        columnType=$( awk 'BEGIN{FS="|"}{if(NR=='$i') print $2}' .$Tablename)
+        columnKey=$( awk 'BEGIN{FS="|"}{if(NR=='$i') print $3}' .$Tablename)
+        echo -e "$columnName ($columnType) = \c"
+        read data
+
+        if [ $columnType = "int" ]
+        then
+            case $data in
+                +([0-9]) )  echo "Integer"
+                ;;
+                * )  echo "Invalid DataType :(" 
+                ;;        
+            esac
+        fi    
+
+        ########### Validate Input ###########
+    #    if [[ $columnType == "int" ]]; 
+    #    then
+    #        while ! [[ $data =~ ^[0-9]*$ ]]; 
+    #        do
+    #            echo -e "invalid DataType !!"
+    #            echo -e "$colName ($colType) = \c"
+    #            read data
+    #        done
+    #    fi
+        ######################################
+
+        if [[ $columnKey == "PK" ]]; 
+        then
+            while [[ true ]]; 
+            do
+                if [[ $data =~ ^[`awk 'BEGIN{FS="|" ; ORS=" "}{if(NR != 1)print $(('$i'-1))}' $Tablename`]$ ]]; 
+                then
+                    echo -e "invalid input for Primary Key !!"
+                else
+                    break;
+                fi
+                echo -e "$columnName ($columnType) = \c"
+                read data
+            done
+        fi
+
+        #Set row
+        if [[ $i == $columnsNumber ]]; 
+        then
+        row=$row$data$raw_seperator
+        else
+        row=$row$data$seperator
+        fi
+
+    done 
+
+    echo -e $row >> $Tablename
+    if [[ $? == 0 ]]
+    then
+        echo "Data Inserted Successfully"
+    else
+        echo "Error Inserting Data into Table $Tablename"
+    fi
+
+    row=""
+
+    Record_stage
+}
+
+
+# function updateTable {
+#   echo -e "Enter Table Name: \c"
+#   read tName
+#   echo -e "Enter Condition Column name: \c"
+#   read field
+#   fid=$(awk 'BEGIN{FS="|"}{if(NR==1){for(i=1;i<=NF;i++){if($i=="'$field'") print i}}}' $tName)
+#   if [[ $fid == "" ]]
+#   then
+#     echo "Not Found"
+#     tablesMenu
+#   else
+#     echo -e "Enter Condition Value: \c"
+#     read val
+#     res=$(awk 'BEGIN{FS="|"}{if ($'$fid'=="'$val'") print $'$fid'}' $tName 2>>./.error.log)
+#     if [[ $res == "" ]]
+#     then
+#       echo "Value Not Found"
+#       tablesMenu
+#     else
+#       echo -e "Enter FIELD name to set: \c"
+#       read setField
+#       setFid=$(awk 'BEGIN{FS="|"}{if(NR==1){for(i=1;i<=NF;i++){if($i=="'$setField'") print i}}}' $tName)
+#       if [[ $setFid == "" ]]
+#       then
+#         echo "Not Found"
+#         tablesMenu
+#       else
+#         echo -e "Enter new Value to set: \c"
+#         read newValue
+#         NR=$(awk 'BEGIN{FS="|"}{if ($'$fid' == "'$val'") print NR}' $tName 2>>./.error.log)
+#         oldValue=$(awk 'BEGIN{FS="|"}{if(NR=='$NR'){for(i=1;i<=NF;i++){if(i=='$setFid') print $i}}}' $tName 2>>./.error.log)
+#         echo $oldValue
+#         sed -i ''$NR's/'$oldValue'/'$newValue'/g' $tName 2>>./.error.log
+#         echo "Row Updated Successfully"
+#         tablesMenu
+#       fi
+#     fi
+#   fi
+# }
+
+
+# function deleteFromTable {
+#   echo -e "Enter Table Name: \c"
+#   read tName
+#   echo -e "Enter Condition Column name: \c"
+#   read field
+#   fid=$(awk 'BEGIN{FS="|"}{if(NR==1){for(i=1;i<=NF;i++){if($i=="'$field'") print i}}}' $tName)
+#   if [[ $fid == "" ]]
+#   then
+#     echo "Not Found"
+#     tablesMenu
+#   else
+#     echo -e "Enter Condition Value: \c"
+#     read val
+#     res=$(awk 'BEGIN{FS="|"}{if ($'$fid'=="'$val'") print $'$fid'}' $tName 2>>./.error.log)
+#     if [[ $res == "" ]]
+#     then
+#       echo "Value Not Found"
+#       tablesMenu
+#     else
+#       NR=$(awk 'BEGIN{FS="|"}{if ($'$fid'=="'$val'") print NR}' $tName 2>>./.error.log)
+#       sed -i ''$NR'd' $tName 2>>./.error.log
+#       echo "Row Deleted Successfully"
+#       tablesMenu
+#     fi
+#   fi
+# }
+
+
+MainDB
