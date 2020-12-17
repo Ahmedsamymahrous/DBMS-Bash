@@ -219,6 +219,9 @@ function InsertInto
       noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
       idx=2
       fs="|"
+      colName=""
+      colType=""
+      colConstraint=""
       until [ $idx -gt $noOfCol ]
       do
          colName=`(awk -F'|' '{if(NR=='$idx') print $1}' .$Tablename)`
@@ -257,16 +260,20 @@ function InsertInto
         # Check if the entered PK already exists
         if [[ "$colConstraint" == "PK" ]]
         then
+           flag=1
             while [ true ]
-            e=`(awk -F'|' '{if('$data'==$1) print $1 }' $Tablename)`
-            if ! [[ $e =~ ^[0-9]+$ ]] 
-            then
-               echo "PK already exists!"
-               echo -e "Enter unique PK : \c"
-               read data
-            else
-               break
-            fi
+            do
+                e=`(awk -F'|' '{if('$data'=='$idx') print '$idx' }' $Tablename)`  #hydrb
+                #echo $e
+                if ! [[ $e =~ ^[0-9]+$ ]] 
+                then
+                    echo "PK already exists!"
+                    echo -e "Enter unique PK : \c"
+                    read data
+                else 
+                    break
+                fi
+            done
         fi
             
         # Set row data
@@ -279,7 +286,7 @@ function InsertInto
         ((idx++))
       done
 
-      echo -e $row >> $Tablename
+      echo $row >> $Tablename
       if [ $? -eq 0 ]
         then 
             echo "Data inserted successfully"
@@ -287,6 +294,7 @@ function InsertInto
             echo "Error !"
         fi
       fi
+     Record_stage
 }
 
 
