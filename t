@@ -210,13 +210,14 @@ function ReadTableNameFromUSer
 ################################# Record level #########################################
 function InsertInto
 {
-      Tablename=$1
-      if ! [ -f $Tablename ]
+      #Tablename=$1
+      row=""
+      if ! [ -f $1 ]
       then 
-           echo "Table $Tablename doesn't exist!"
+           echo "Table $1 doesn't exist!"
       else
       #Get num of rows stored in metadata file which represents the num of columns
-      noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+      noOfCol=$(awk -F: 'END{print NR}' .$1)
       idx=2
       fs="|"
       colName=""
@@ -224,9 +225,9 @@ function InsertInto
       colConstraint=""
       until [ $idx -gt $noOfCol ]
       do
-         colName=`(awk -F'|' '{if(NR=='$idx') print $1}' .$Tablename)`
-         colType=`(awk -F'|' '{if(NR=='$idx') print $2 }' .$Tablename)` 
-         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
+         colName=`(awk -F'|' '{if(NR=='$idx') print $1}' .$1)`
+         colType=`(awk -F'|' '{if(NR=='$idx') print $2 }' .$1)` 
+         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$1)`
          echo -e "Enter data of column $colName : \c"
          read data
          
@@ -245,37 +246,43 @@ function InsertInto
               esac
          elif [[ "$colType" == "integer" ]]
          then
-              case $data in 
-              +([0-9]) )
-                           echo "OK"
-                           ;;
-              *)
-                 echo "Invalid data type!"
-                 echo -e "Enter valid data type (int): \c"
-                 read data
-                 ;;
-              esac
-        fi
-
-        # Check if the entered PK already exists
-        if [[ "$colConstraint" == "PK" ]]
-        then
-           flag=1
-            while [ true ]
+           while [[ true ]]
             do
-                e=`(awk -F'|' '{if('$data'=='$idx') print '$idx' }' $Tablename)`  #hydrb
-                #echo $e
-                if ! [[ $e =~ ^[0-9]+$ ]] 
-                then
-                    echo "PK already exists!"
-                    echo -e "Enter unique PK : \c"
-                    read data
-                else 
-                    break
-                fi
+                    case $data in 
+                    +([0-9]) )
+                            # Check if the entered PK already exists
+                                if [[ "$colConstraint" == "PK" ]]
+                                then
+                                    flag2=1
+                                    let exist=0
+                                    while [[ true ]]
+                                    do
+                                        #set -x
+                                        exist=`(awk -F'|' '{if('$data'==$('$idx'-1)) print $('$idx'-1)}' $Tablename)`  #hydrb
+                                        #echo $exist
+                                        #set +x
+                                        if ! [[ $exist -eq 0 ]]
+                                        then
+                                            echo "PK already exists!"
+                                            echo -e "Enter unique PK : \c"
+                                            read data
+                                            exist=0
+                                        else 
+                                            break 
+                                        fi
+                                    done
+                                fi
+                                break
+                        ;;
+                    *)
+                        echo "Invalid data type!"
+                        echo -e "Enter valid data type (int): \c"
+                        read data
+                        ;;
+                    esac
             done
         fi
-            
+         
         # Set row data
         if ! [ $idx -eq $noOfCol ]
         then
@@ -285,8 +292,8 @@ function InsertInto
         fi
         ((idx++))
       done
-
-      echo $row >> $Tablename
+     
+      echo -e $row >> $1
       if [ $? -eq 0 ]
         then 
             echo "Data inserted successfully"
@@ -294,6 +301,7 @@ function InsertInto
             echo "Error !"
         fi
       fi
+      row=""
      Record_stage
 }
 
