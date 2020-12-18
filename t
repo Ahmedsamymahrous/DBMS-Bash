@@ -234,9 +234,11 @@ function InsertInto
          #Validate data type 
          if [[ "$colType" == "string" ]]   
          then
+           while [[ true ]]
+            do
              case $data in
              +([a-z A-Z]) )
-                  echo "OK"
+                  break
                   ;;
               *)
                  echo "Invalid data type!"
@@ -244,6 +246,7 @@ function InsertInto
                  read data
                  ;;
               esac
+            done
          elif [[ "$colType" == "integer" ]]
          then
            while [[ true ]]
