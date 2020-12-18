@@ -171,9 +171,9 @@ function Create_table
 
         if [[ $? == 0 ]]
         then
-            echo -e "Table Created Successfully :)\n"
+            echo "Table Created Successfully :)"
         else
-            echo -e "NOT Successful Creation of Table $Tablename :(\n"
+            echo "NOT Successful Creation of Table $Tablename :("
         fi
     fi
 
@@ -296,7 +296,7 @@ function InsertInto
         ((idx++))
       done
      
-      echo -e $row >> $Tablename
+      echo $row >> $Tablename
       if [ $? -eq 0 ]
         then 
             echo "Data inserted successfully"
