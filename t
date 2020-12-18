@@ -304,8 +304,6 @@ function InsertInto
             echo "Error !"
         fi
       fi
-      row=""
-     Record_stage
 }
 
 
