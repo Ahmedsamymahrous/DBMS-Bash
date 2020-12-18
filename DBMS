@@ -1,18 +1,21 @@
 #!/bin/bash 
+shopt -s extglob
+export LC_COLLATE=C
 
 mkdir DBs   # To create directory in the first time .. in the second time it will generate an error but it will disapear because (clear) in raw NO. 5!
 cd DBs
 clear
 
+########################## DB level ##########################################
 function Create_DB
 { 
     ReadDBNameFromUSer
     if test -d $DBname
     then
-       echo -e "$DBname already exists!\n"
+       echo "$DBname already exists!"
     else
         mkdir $DBname
-        echo -e "Database $DBname has been created successfully :)\n"
+        echo "Database $DBname has been created successfully :)"
     fi
 
     MainDB
@@ -28,7 +31,7 @@ function Open_DB
         echo "Done."
         MainTables
     else
-        echo -e "$DBname doesn't exist!\n"
+        echo "$DBname doesn't exist!"
     fi
 
     MainDB
@@ -68,33 +71,15 @@ function list_DBs
     MainDB 
 }
 
+#### Auxiliary function, Reading Database name from the user ####################
 function ReadDBNameFromUSer
 {
     echo -e "Enter Database name: \c"
 	read DBname    
 }
 
-function MainDB
-{  
-    select choice in 'Create Database' 'Open Database' 'Drop Database' 'List Database' 'Exit'
-    do 
-        case $REPLY in 
-            1 ) Create_DB
-            ;;
-            2 ) Open_DB 
-            ;;
-            3 ) Drop_DB
-            ;;
-            4 ) list_DBs 
-            ;;
-            5 ) clear; exit 0
-            ;;
-            * ) echo -e "Invalid Input :(\n" ; MainDB
-        esac
-        
-    done
-}
-
+##################################  Tables level ###############################################
+ 
 function List_All_Tables
 {
     ls ; MainTables
@@ -105,8 +90,8 @@ function Open_Certain_table
     ReadTableNameFromUSer
     if [ -f $Tablename ]
     then
-        cat $Tablename
-       ####   Here we gonna Call the Record stage   ####
+        #cat $Tablename
+        Record_stage $Tablename
     else
         echo -e "$Tablename doesn't exist!\n"
     fi
@@ -215,11 +200,169 @@ function Drop_table
 
     MainTables
 }
-
+#### Auxiliary function, Reading table name from the user #################### 
 function ReadTableNameFromUSer
 {
     echo -e "Enter Table name: \c"
 	read Tablename
+}
+
+################################# Record level #########################################
+function InsertInto
+{
+      Tablename=$1
+      row=""
+      if ! [ -f $Tablename ]
+      then 
+           echo "Table $Tablename doesn't exist!"
+      else
+      #Get num of rows stored in metadata file which represents the num of columns
+      noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+      idx=2
+      fs="|"
+      colName=""
+      colType=""
+      colConstraint=""
+      until [ $idx -gt $noOfCol ]
+      do
+         colName=`(awk -F'|' '{if(NR=='$idx') print $1}' .$Tablename)`
+         colType=`(awk -F'|' '{if(NR=='$idx') print $2 }' .$Tablename)` 
+         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
+         echo -e "Enter data of column $colName : \c"
+         read data
+         
+         #Validate data type 
+         if [[ "$colType" == "string" ]]   
+         then
+           while [[ true ]]
+            do
+             case $data in
+             +([a-z A-Z]) )
+                  break
+                  ;;
+              *)
+                 echo "Invalid data type!"
+                 echo -e "Enter valid data type (string): \c"
+                 read data
+                 ;;
+              esac
+            done
+         elif [[ "$colType" == "integer" ]]
+         then
+           while [[ true ]]
+            do
+                    case $data in 
+                    +([0-9]) )
+                            # Check if the entered PK already exists
+                                if [[ "$colConstraint" == "PK" ]]
+                                then
+                                    flag2=1
+                                    let exist=0
+                                    while [[ true ]]
+                                    do
+                                        #set -x
+                                        exist=`(awk -F'|' '{if('$data'==$('$idx'-1)) print $('$idx'-1)}' $Tablename)`  #hydrb
+                                        #echo $exist
+                                        #set +x
+                                        if ! [[ $exist -eq 0 ]]
+                                        then
+                                            echo "PK already exists!"
+                                            echo -e "Enter unique PK : \c"
+                                            read data
+                                            exist=0
+                                        else 
+                                            break 
+                                        fi
+                                    done
+                                fi
+                                break
+                        ;;
+                    *)
+                        echo "Invalid data type!"
+                        echo -e "Enter valid data type (int): \c"
+                        read data
+                        ;;
+                    esac
+            done
+        fi
+         
+        # Set row data
+        if ! [ $idx -eq $noOfCol ]
+        then
+            row=$row$data$fs  
+        else
+            row=$row$data
+        fi
+        ((idx++))
+      done
+     
+      echo -e $row >> $Tablename
+      if [ $? -eq 0 ]
+        then 
+            echo "Data inserted successfully"
+        else
+            echo "Error !"
+        fi
+      fi
+}
+
+function delete_record
+{
+   Tablename=$1
+   let idx=2
+   echo -e "Enter PK of the record u wanna delete: \c "
+   read
+   noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+   until [ $idx -gt $noOfCol ]
+    do
+         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
+         if [[ "$colConstraint" == "PK" ]]
+        then
+            # GET the Record number using the PK
+            recordnumber=`(awk -F'|' '{if('$REPLY'==$('$idx'-1)) print NR}' $Tablename)`
+            # Check if the entered PK exist? "Delete" : "not found!" 
+            if [[ "$recordnumber" =~ ^[0-9]+$ ]]
+            then
+                    # Delete the record using the record number, then redirect to a new file and rename its name with table name :)
+                    awk -v n=$recordnumber 'NR == n {next} {print}' $Tablename > tmp && mv tmp $Tablename
+            else
+                echo "NOT FOUND!"
+                break
+            fi
+            if [ $? -eq 0 ]
+            then 
+                echo "Record deleted successfully"
+            else
+                echo "Error deleting the record!"
+            fi
+            break
+        fi
+
+    ((idx++))
+    done
+       
+
+}
+
+function MainDB
+{  
+    select choice in 'Create Database' 'Open Database' 'Drop Database' 'List Database' 'Exit'
+    do 
+        case $REPLY in 
+            1 ) Create_DB
+            ;;
+            2 ) Open_DB 
+            ;;
+            3 ) Drop_DB
+            ;;
+            4 ) list_DBs 
+            ;;
+            5 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; MainDB
+        esac
+        
+    done
 }
 
 function MainTables
@@ -244,5 +387,27 @@ function MainTables
         
     done
 }
+function Record_stage
+{
+    Tablename=$1
+    select choice in 'Insert New Record' 'Delete Record' 'Update Certain Cell' 'Back to Tables Menu' 'Exit'
+    do
+        case $REPLY in 
+            1 ) InsertInto $Tablename
+            ;;
+            2 ) delete_record $Tablename
+            ;;
+            3 ) Update_cell $Tablename
+            ;; 
+            4 ) clear; MainTables  
+            ;;
+            5 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; Record_stage $Tablename
+        esac
+    done
+}
+
 
 MainDB
+#InsertInto $Tablename
