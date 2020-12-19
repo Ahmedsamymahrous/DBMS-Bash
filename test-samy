@@ -1,0 +1,281 @@
+#!/bin/bash 
+
+shopt -s extglob
+export LC_COLLATE=C
+
+mkdir DBs   # To create directory in the first time .. in the second time it will generate an error but it will disapear because (clear) in raw NO. 5!
+cd DBs
+clear
+
+function Create_DB
+{ 
+    ReadDBNameFromUSer
+    if test -d $DBname
+    then
+       echo -e "$DBname already exists!\n"
+    else
+        mkdir $DBname
+        echo -e "Database $DBname has been created successfully!\n"
+    fi
+
+    MainDB
+}
+
+# Gate Functiion
+function Open_DB
+{
+    ReadDBNameFromUSer  
+    if test -d $DBname
+    then
+        cd $DBname
+        echo -e "\n>> You are Now in ($DBname) Database\n   Select Your Choice:\n"
+        MainTables $DBname  # Enter into Tables Stage
+    else
+        echo -e "\n$DBname doesn't exist!\n"
+    fi
+
+    MainDB
+}
+
+function Drop_DB
+{
+    ReadDBNameFromUSer
+    if [ -d $DBname ]
+    then 
+        echo "Are you sure? y|n "
+        read choice
+        if [ $choice = "y" ]
+        then
+            rm -r $DBname
+            echo -e "Database $DBname has been removed successfully!\n\n"
+        else
+            MainDB
+        fi
+    else
+        echo -e "$DBname doesn't exist!\n\n"
+    fi  
+
+    MainDB       
+}
+
+function list_DBs
+{
+    if [ "$(ls -A)" ]
+    then
+        echo -e "Available Database/s: ";ls
+        echo -e "\n"  
+    else
+        echo "No Databases to show!"
+    fi
+
+    MainDB 
+}
+
+function ReadDBNameFromUSer
+{
+    echo -e "Enter Database name: \c"
+	read DBname    
+}
+
+function MainDB
+{  
+    select choice in 'Create Database' 'Open Database' 'Drop Database' 'List Database' 'Exit'
+    do 
+        case $REPLY in 
+            1 ) Create_DB
+            ;;
+            2 ) Open_DB 
+            ;;
+            3 ) Drop_DB
+            ;;
+            4 ) list_DBs 
+            ;;
+            5 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; MainDB
+        esac
+        
+    done
+}
+
+function List_All_Tables
+{
+    ls; MainTables
+}
+
+# Gate Function
+function Open_Certain_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then
+        cat $Tablename
+        Record_stage $Tablename  #Enter into Record Stage
+    else
+        echo -e "$Tablename doesn't exist!\n"
+    fi
+
+    MainTables
+}
+
+function Create_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then
+        echo -e "$Tablename already exist!\n"
+    else
+        
+        while ! [[ $columnsNumber =~ ^[0-9]+$ ]]
+        do
+            echo -e "Number of Columns: \c"
+            read columnsNumber
+        done
+        
+        seperator="|"
+        raw_seperator="\n"
+        pkey=""
+
+        metaData_def="Column Name"$seperator"Type"$seperator"Primary Key"
+        
+        showNumber=1
+        for (( counter = 0; counter < $columnsNumber; counter++ ));
+        do
+            declare -A metaData_data
+            _counter=0
+            echo -e "Name of Column Number "$showNumber": \c"
+            read columnName
+            ((showNumber++))
+            data[$counter]=$columnName
+            metaData_data[$counter,$_counter]=$columnName # metaData_data[0,0] = id
+            ((_counter++))
+
+            echo -e "Type of Column $columnName: " 
+            select type in "integer" "string"
+            do
+                case $type in
+                    integer ) columnType="int"; 
+                    break
+                    ;;
+                    string ) columnType="str";
+                    break
+                    ;;
+                    * ) echo "Invalid Input :(" 
+                    ;;
+                esac
+            done
+            metaData_data[$counter,$_counter]=$columnType # metaData_data[0,1] = type(int or str)
+            ((_counter++))
+
+            if [[ $pKey == "" ]]; 
+            then
+                echo -e "Make Primary Key ?"
+                select var in "yes" "no"
+                do
+                    case $var in
+                        yes ) pKey="PK"; metaData_data[$counter,$_counter]="$pKey";
+                        break
+                        ;;
+                        no ) metaData_data[$counter,$_counter]="";
+                        break
+                        ;;
+                        * ) echo "Invalid Input :(" 
+                        ;;
+                    esac
+                done
+            else
+                metaData_data[$counter,$_counter]="";
+            fi
+        done
+        
+        # Print MetaData
+        touch .$Tablename
+        echo -e $metaData_def >> .$Tablename
+        for (( counter = 0; counter < $columnsNumber; counter++ ));
+        do  
+            for (( _counter = 0; _counter < 3; _counter++ ));
+            do
+                if [ $_counter == 2 ]
+                then
+                    echo -n -e "${metaData_data[$counter,$_counter]}" >> .$Tablename
+                else
+                    echo -n -e "${metaData_data[$counter,$_counter]}" "$seperator" >> .$Tablename  
+                fi 
+            done  
+            echo -n -e "$raw_seperator" >> .$Tablename  
+        done
+
+        # Print Actual Data
+        touch $Tablename
+        ((flag=$columnsNumber-1))
+        for (( counter = 0; counter < $columnsNumber; counter++ )); 
+        do
+            if [[ $counter == $flag ]]
+            then
+                echo -n "${data[$counter]}"  >> $Tablename
+                echo -n -e "$raw_seperator" >> $Tablename
+                echo "aw3a"
+            else
+                echo -n "${data[$counter]}" "$seperator" >> $Tablename
+            fi
+        done
+        # Check The Process
+        if [[ $? == 0 ]]
+        then
+            echo -e "Table Created Successfully :)\n"
+        else
+            echo -e "NOT Successful Creation of Table $Tablename :(\n"
+        fi
+    fi      
+    MainTables
+}
+
+function Drop_table
+{
+    ReadTableNameFromUSer
+    if [ -f $Tablename ]
+    then 
+        echo "Are you sure? y|n "
+        read choice
+        if [ $choice = "y" ]
+        then
+            rm $Tablename .$Tablename
+            echo -e "$Tablename Table has been removed successfully :)\n\n"
+        else
+            clear; MainTables
+        fi
+    else
+        echo -e "$Tablename Table doesn't exist!\n\n"
+    fi  
+
+    MainTables
+}
+
+function ReadTableNameFromUSer
+{
+    echo -e "Enter Table name: \c"
+	read Tablename
+}
+
+function MainTables
+{
+    select choice in 'List All Tables' 'Open Certain Table' 'Create Table' 'Drop Table' 'Back to DB Menu' 'Exit'
+    do
+        case $REPLY in 
+            1 ) List_All_Tables 
+            ;;
+            2 ) Open_Certain_table 
+            ;;
+            3 ) Create_table 
+            ;; 
+            4 ) Drop_table
+            ;;
+            5 ) clear; cd ../; MainDB
+            ;;
+            6 ) clear; exit 0
+            ;;
+            * ) echo -e "Invalid Input :(\n" ; MainTables  
+        esac
+        
+    done
+}
