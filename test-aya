@@ -78,7 +78,8 @@ function ReadDBNameFromUSer
  
 function List_All_Tables
 {
-    ls ; MainTables
+    #whiptail --title "Available Tables" --infobox ls 8 78
+    ls;MainTables
 }
 
 function Open_Certain_table
@@ -388,30 +389,42 @@ function delete_record
 
 function MainDB
 {  
-    select choice in 'Create Database' 'Open Database' 'Drop Database' 'List Database' 'Exit'
-    do 
-        case $REPLY in 
-            1 ) Create_DB
+
+    input=`(whiptail --title "Database Menu" --fb --menu "Choose an option" 15 50 6 \
+    "1" "Create Database" \
+    "2" "Open Database" \
+    "3" "Drop Database"  \
+    "4" "List Database"   \
+    "5" "Exit" 3>&1 1>&2 2>&3)`
+    case $input in
+            1 ) 
+                Create_DB
             ;;
-            2 ) Open_DB 
+            2 ) 
+                Open_DB 
             ;;
-            3 ) Drop_DB
+            3 ) 
+                Drop_DB
             ;;
-            4 ) list_DBs 
+            4 ) 
+                list_DBs 
             ;;
-            5 ) clear; exit 0
+            5 ) 
+                clear; exit 0
             ;;
-            * ) zenity --error --title="Error!" --text="Invalid Input :(" --no-wrap ; MainDB
-        esac
-        
-    done
+    esac
 }
 
 function MainTables
 {
-    select choice in 'List All Tables' 'Open Certain Table' 'Create Table' 'Drop Table' 'Back to DB Menu' 'Exit'
-    do
-        case $REPLY in 
+    input=`(whiptail --title "Tables Menu" --fb --menu "Choose an option" 15 50 6 \
+    "1" "List All Tables" \
+    "2" "Open Certain Table" \
+    "3" "Create Table"  \
+    "4" "Drop Table"   \
+    "5" "Back to DB Menu" \
+    "6" "Exit" 3>&1 1>&2 2>&3)`
+    case $input in
             1 ) List_All_Tables 
             ;;
             2 ) Open_Certain_table 
@@ -424,17 +437,18 @@ function MainTables
             ;;
             6 ) clear; exit 0
             ;;
-            * ) zenity --error --title="Error!" --text="Invalid Input :(" --no-wrap ; MainTables  
-        esac
-        
-    done
+    esac
 }
 function Record_stage
 {
     Tablename=$1
-    select choice in 'Insert New Record' 'Delete Record' 'Update Certain Cell' 'Back to Tables Menu' 'Exit'
-    do
-        case $REPLY in 
+    input=`(whiptail --title "Records Menu" --fb --menu "Choose an option" 15 50 6 \
+    "1" "Insert New Record" \
+    "2" "Delete Record" \
+    "3" "Update Certain Cell"  \
+    "4" "Back to Tables Menu"   \
+    "5" "Exit" 3>&1 1>&2 2>&3)`
+    case $input in
             1 ) InsertInto $Tablename
             ;;
             2 ) delete_record $Tablename
@@ -445,9 +459,8 @@ function Record_stage
             ;;
             5 ) clear; exit 0
             ;;
-            * ) zenity --error --title="Error!" --text="Invalid Input :(" --no-wrap ; Record_stage $Tablename
-        esac
-    done
+    esac
+    
 }
 
 
