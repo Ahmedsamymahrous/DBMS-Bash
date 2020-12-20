@@ -176,7 +176,14 @@ function Create_table
                         yes ) pKey="PK"; metaData_data[$counter,$_counter]="$pKey";
                         break
                         ;;
-                        no ) metaData_data[$counter,$_counter]="";
+                        no ) if [[ $counter -eq $columnsNumber-1 ]]
+                                then
+                                    echo "Your table has NO Primary Key!"
+                                    echo -e "Please Create a new table with a PK ;)\n"
+                                    MainTables
+                                else
+                                    metaData_data[$counter,$_counter]="";
+                                fi
                         break
                         ;;
                         * ) echo "Invalid Input :(" 
