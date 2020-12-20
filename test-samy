@@ -214,7 +214,6 @@ function Create_table
             then
                 echo -n "${data[$counter]}"  >> $Tablename
                 echo -n -e "$raw_seperator" >> $Tablename
-                echo "aw3a"
             else
                 echo -n "${data[$counter]}" "$seperator" >> $Tablename
             fi
