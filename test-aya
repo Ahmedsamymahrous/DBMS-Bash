@@ -362,6 +362,9 @@ function delete_record
                     then
                            # Delete the record using the record number, then redirect to a new file and rename its name with table name :)
                           awk -v n=$recordnumber 'NR == n {next} {print}' $Tablename > tmp && mv tmp $Tablename
+                    else 
+                           zenity --warning --title="Warning" --text="Terminating without deleting" --no-wrap
+                           break
                     fi     
             else
                 zenity --error --title="Error!" --text="$pk doesn't exist!" --no-wrap
