@@ -106,32 +106,47 @@ function Create_table
     then
         echo -e "$Tablename already exist!\n"
     else
-        echo -e "Number of Columns: \c"
-        read columnsNumber
+        
+        while ! [[ $columnsNumber =~ ^[0-9]+$ ]]
+        do
+            echo -e "Number of Columns: \c"
+            read columnsNumber
+        done
+        
         seperator="|"
         raw_seperator="\n"
-        pKey=""
-        counter=1
-        metaData="Column Name"$seperator"Type"$seperator"Primary Key"
-        while [ $counter -le $columnsNumber ]
-        do
-            echo -e "Name of Column Number ($counter): \c"
-            read columnName
+        pkey=""
 
-            echo -e "Type of Column $columnName: "
+        metaData_def="Column Name"$seperator"Type"$seperator"Primary Key"
+        
+        showNumber=1
+        declare -A metaData_data
+        for (( counter = 0; counter < $columnsNumber; counter++ ));
+        do
+            _counter=0
+            echo -e "Name of Column Number "$showNumber": \c"
+            read columnName
+            ((showNumber++))
+            data[$counter]=$columnName
+            metaData_data[$counter,$_counter]=$columnName # metaData_data[0,0] = id
+            ((_counter++))
+
+            echo -e "Type of Column $columnName: " 
             select type in "integer" "string"
             do
                 case $type in
-                    integer ) columnType="integer";
+                    integer ) columnType="int"; 
                     break
                     ;;
-                    string ) columnType="string";
+                    string ) columnType="str";
                     break
                     ;;
                     * ) echo "Invalid Input :(" 
                     ;;
                 esac
             done
+            metaData_data[$counter,$_counter]=$columnType # metaData_data[0,1] = type(int or str)
+            ((_counter++))
 
             if [[ $pKey == "" ]]; 
             then
@@ -139,10 +154,10 @@ function Create_table
                 select var in "yes" "no"
                 do
                     case $var in
-                        yes ) pKey="PK"; metaData+=$raw_seperator$columnName$seperator$columnType$seperator$pKey;
+                        yes ) pKey="PK"; metaData_data[$counter,$_counter]="$pKey";
                         break
                         ;;
-                        no ) metaData+=$raw_seperator$columnName$seperator$columnType$seperator"";
+                        no ) metaData_data[$counter,$_counter]="";
                         break
                         ;;
                         * ) echo "Invalid Input :(" 
@@ -150,33 +165,56 @@ function Create_table
                     esac
                 done
             else
-                metaData+=$raw_seperator$columnName$seperator$columnType$seperator""
+                metaData_data[$counter,$_counter]="";
             fi
-
-            if [[ $counter == $columnsNumber ]]; 
-            then
-                data=$data$columnName
-            else
-                data=$data$columnName$seperator
-            fi
-
-            ((counter++))
 
         done
         
-        touch .$Tablename
-        echo -e $metaData >> .$Tablename
-        touch $Tablename
-        echo -e $data >> $Tablename
+        if [[ $pKey == "" ]]
+        then 
+            #echo "Failed to create table $columnName"
+            echo "U must set a column as a primary key"
+            #$?=1
+        else
+                # Print MetaData
+                touch .$Tablename
+                echo -e $metaData_def >> .$Tablename
+                for (( counter = 0; counter < $columnsNumber; counter++ ));
+                do  
+                    for (( _counter = 0; _counter < 3; _counter++ ));
+                    do
+                        if [ $_counter == 2 ]
+                        then
+                            echo -n -e "${metaData_data[$counter,$_counter]}" >> .$Tablename
+                        else
+                            echo -n -e "${metaData_data[$counter,$_counter]}""$seperator" >> .$Tablename  
+                        fi 
+                    done  
+                    echo -n -e "$raw_seperator" >> .$Tablename  
+                done
 
-        if [[ $? == 0 ]]
+                # Print Actual Data
+                touch $Tablename
+                ((flag=$columnsNumber-1))
+                for (( counter = 0; counter < $columnsNumber; counter++ )); 
+                do
+                    if [[ $counter == $flag ]]
+                    then
+                        echo -n "${data[$counter]}"  >> $Tablename
+                        echo -n -e "$raw_seperator" >> $Tablename
+                    else
+                        echo -n "${data[$counter]}""$seperator" >> $Tablename
+                    fi
+                done
+        fi
+        # Check The Process
+        if [[ $? == 0 && $pKey != "" ]]
         then
             echo -e "Table Created Successfully :)\n"
         else
             echo -e "NOT Successful Creation of Table $Tablename :(\n"
         fi
-    fi
-
+    fi      
     MainTables
 }
 
@@ -210,14 +248,14 @@ function ReadTableNameFromUSer
 ################################# Record level #########################################
 function InsertInto
 {
-      #Tablename=$1
+      Tablename=$1
       row=""
-      if ! [ -f $1 ]
+      if ! [ -f $Tablename ]
       then 
-           echo "Table $1 doesn't exist!"
+           echo "Table $Tablename doesn't exist!"
       else
       #Get num of rows stored in metadata file which represents the num of columns
-      noOfCol=$(awk -F: 'END{print NR}' .$1)
+      noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
       idx=2
       fs="|"
       colName=""
@@ -225,14 +263,14 @@ function InsertInto
       colConstraint=""
       until [ $idx -gt $noOfCol ]
       do
-         colName=`(awk -F'|' '{if(NR=='$idx') print $1}' .$1)`
-         colType=`(awk -F'|' '{if(NR=='$idx') print $2 }' .$1)` 
-         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$1)`
+         colName=`(awk -F'|' '{if(NR=='$idx') print $1}' .$Tablename)`
+         colType=`(awk -F'|' '{if(NR=='$idx') print $2 }' .$Tablename)` 
+         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
          echo -e "Enter data of column $colName : \c"
          read data
          
          #Validate data type 
-         if [[ "$colType" == "string" ]]   
+         if [[ "$colType" == "str" ]]   
          then
            while [[ true ]]
             do
@@ -247,7 +285,7 @@ function InsertInto
                  ;;
               esac
             done
-         elif [[ "$colType" == "integer" ]]
+         elif [[ "$colType" == "int" ]]
          then
            while [[ true ]]
             do
@@ -296,7 +334,7 @@ function InsertInto
         ((idx++))
       done
      
-      echo -e $row >> $1
+      echo $row >> $Tablename
       if [ $? -eq 0 ]
         then 
             echo "Data inserted successfully"
@@ -306,6 +344,43 @@ function InsertInto
       fi
 }
 
+function delete_record
+{
+   Tablename=$1
+   let idx=2
+   echo -e "Enter PK of the record u wanna delete: \c "
+   read
+   noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+   until [ $idx -gt $noOfCol ]
+    do
+         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
+         if [[ "$colConstraint" == "PK" ]]
+        then
+            # GET the Record number using the PK
+            recordnumber=`(awk -F'|' '{if('$REPLY'==$('$idx'-1)) print NR}' $Tablename)`
+            # Check if the entered PK exist? "Delete" : "not found!" 
+            if [[ "$recordnumber" =~ ^[0-9]+$ ]]
+            then
+                    # Delete the record using the record number, then redirect to a new file and rename its name with table name :)
+                    awk -v n=$recordnumber 'NR == n {next} {print}' $Tablename > tmp && mv tmp $Tablename
+            else
+                echo "NOT FOUND!"
+                break
+            fi
+            if [ $? -eq 0 ]
+            then 
+                echo "Record deleted successfully"
+            else
+                echo "Error deleting the record!"
+            fi
+            break
+        fi
+
+    ((idx++))
+    done
+       
+
+}
 
 function MainDB
 {  
