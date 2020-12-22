@@ -95,7 +95,6 @@ function Open_Certain_table
     ReadTableNameFromUSer
     if [ -f $Tablename ]
     then
-        #cat $Tablename
         Record_stage $Tablename
     else
         zenity --error --title="Error!" --text="$Tablename doesn't exist!" --no-wrap
@@ -104,6 +103,12 @@ function Open_Certain_table
     MainTables
 }
 
+function DescribeTable
+{
+    cat $Tablename > .TableContent
+    whiptail --textbox .TableContent 12 80 --title "$Tablename"
+    Record_stage
+}
 function Create_table
 {
     ReadTableNameFromUSer
@@ -442,21 +447,24 @@ function Record_stage
 {
     Tablename=$1
     input=`(whiptail --title "Records Menu" --fb --menu "Choose an option" 15 50 6 \
-    "1" "Insert New Record" \
-    "2" "Delete Record" \
-    "3" "Update Certain Cell"  \
-    "4" "Back to Tables Menu"   \
-    "5" "Exit" 3>&1 1>&2 2>&3)`
+    "1" "Show table" \
+    "2" "Insert New Record" \
+    "3" "Delete Record" \
+    "4" "Update Certain Cell"  \
+    "5" "Back to Tables Menu"   \
+    "6" "Exit" 3>&1 1>&2 2>&3)`
     case $input in
-            1 ) InsertInto $Tablename
+            1 ) DescribeTable $Tablename
+            ;;  
+            2 ) InsertInto $Tablename
             ;;
-            2 ) delete_record $Tablename
+            3 ) delete_record $Tablename
             ;;
-            3 ) Update_cell $Tablename
+            4 ) Update_cell $Tablename
             ;; 
-            4 ) clear; MainTables  
+            5 ) clear; MainTables  
             ;;
-            5 ) clear; exit 0
+            6 ) clear; exit 0
             ;;
     esac
     
