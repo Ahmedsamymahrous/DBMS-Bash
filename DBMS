@@ -43,11 +43,17 @@ function Drop_DB
     ReadDBNameFromUSer
     if [ -d $DBname ]
     then 
-        if zenity --question --title="Confirm deletion" --text="Are you sure you want to delete this Database?" --no-wrap 
-        then
-            rm -r $DBname
-            zenity --info --title="Success" --text="$DBname has been removed successfully" --no-wrap
-        fi
+        input=`(whiptail --title "Are you sure you want to delete this Database?" --fb --menu "Confirm" 15 50 6 \
+            "1" "yes" \
+            "2" "no"  3>&1 1>&2 2>&3)`
+            case $input in
+                    1 )  rm -r $DBname
+                         zenity --info --title="Success" --text="$DBname has been removed successfully" --no-wrap
+                    ;;
+                    2 ) 
+                        clear
+                    ;;
+            esac
     else
         zenity --error --title="Error!" --text="$DBname doesn't exist!" --no-wrap
     fi  
@@ -72,8 +78,7 @@ function list_DBs
 #### Auxiliary function, Reading Database name from the user ####################
 function ReadDBNameFromUSer
 {
-    #DBname=$(zenity --entry --title="Enter Database name")   
-    DBname=$(whiptail --inputbox "Enter Database name" 8 39  --title "Database" 3>&1 1>&2 2>&3)
+    DBname=`(whiptail --inputbox "Enter Database name" 8 39  --title "Database" 3>&1 1>&2 2>&3)`
 }
 
 ##################################  Tables level ###############################################
@@ -109,7 +114,7 @@ function Create_table
         
         while ! [[ $columnsNumber =~ ^[0-9]+$ ]]
         do
-           columnsNumber=$(whiptail --inputbox "Enter Number of Columns" 8 39 3>&1 1>&2 2>&3)
+           columnsNumber=`(whiptail --inputbox "Enter Number of Columns" 8 39 3>&1 1>&2 2>&3)`
         done
 
         seperator="|"
@@ -125,7 +130,7 @@ function Create_table
             _counter=0
             #echo -e "Name of Column Number "$showNumber": \c"
             #read columnName
-            columnName=$(whiptail --inputbox "Enter Name of Column Number $showNumber" 8 39 3>&1 1>&2 2>&3)
+            columnName=`(whiptail --inputbox "Enter Name of Column Number $showNumber" 8 39 3>&1 1>&2 2>&3)`
             ((showNumber++))
             data[$counter]=$columnName
             metaData_data[$counter,$_counter]=$columnName # metaData_data[0,0] = id
@@ -232,7 +237,7 @@ function Drop_table
 #### Auxiliary function, Reading table name from the user #################### 
 function ReadTableNameFromUSer
 {
-    Tablename=$(whiptail --inputbox "Enter Table name" 8 39 3>&1 1>&2 2>&3)
+    Tablename=`(whiptail --inputbox "Enter Table name" 8 39 3>&1 1>&2 2>&3)`
 }
 
 ################################# Record level #########################################
@@ -245,7 +250,7 @@ function InsertInto
            zenity --error --title="Error!" --text="Table $Tablename doesn't exist!" --no-wrap
       else
       #Get num of rows stored in metadata file which represents the num of columns
-      noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+      noOfCol=`(awk -F: 'END{print NR}' .$Tablename)`
       idx=2
       fs="|"
       colName=""
@@ -288,7 +293,7 @@ function InsertInto
                                     while [[ true ]]
                                     do
                                         #set -x
-                                        exist=`(awk -F'|' '{if('$data'==$('$idx'-1)) print $('$idx'-1)}' $Tablename)`  #hydrb
+                                        exist=`(awk -F'|' '{if('$data'==$('$idx'-1)) print $('$idx'-1)}' $Tablename)` 
                                         #echo $exist
                                         #set +x
                                         if ! [[ $exist -eq 0 ]]
@@ -340,7 +345,7 @@ function delete_record
    let idx=2
    #pk=$(zenity --entry --title="Enter PK of the record you want to delete")
    pk=`(whiptail --inputbox "Enter PK of the record you want to delete" 8 39 3>&1 1>&2 2>&3)`
-   noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+   noOfCol=`(awk -F: 'END{print NR}' .$Tablename)`
    until [ $idx -gt $noOfCol ]
     do
          colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
