@@ -66,8 +66,8 @@ function list_DBs
 {
     if [ "$(ls -A)" ]
     then
-             ls > .listOfDBs
-            whiptail --textbox .listOfDBs 12 80 --title "Available Databases"
+        ls > .listOfDBs
+        whiptail --title "Available Databases" --fb --scrolltext --textbox .listOfDBs 12 80
 
     else
         zenity --error --title="Error!" --text="No Databases to show!" --no-wrap
@@ -88,7 +88,6 @@ function List_All_Tables
 {
     ls > .listOftables
     whiptail --title "Available Tables" --fb --scrolltext --textbox .listOftables 12 80
-    #MainTables
 }
 
 function Open_Certain_table
