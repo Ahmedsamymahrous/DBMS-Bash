@@ -291,7 +291,7 @@ function InsertInto
             done
          elif [[ "$colType" == "int" ]]
          then
-           while ! [[ data =~ ^[0-9]+$ ]]
+           while [[ true ]]
             do
                 case $data in 
                     +([0-9]) )
@@ -299,25 +299,34 @@ function InsertInto
                                 if [[ "$colConstraint" == "PK" ]]
                                 then
                                     flag2=1
-                                    while ! [[ data =~ ^[0-9]+$ ]]
+                                    let exist=0
+                                    while [[ true ]]
                                     do
-                                        declare exist=0
-                                        exist=`(awk -F'|' '{if('$data'==$('$idx'-1)) print $('$idx'-1)}' $Tablename)` 
+                                        if [[ -z "$data" ]]
+                                        then 
+                                                zenity --error --title="Error!" --text="PK can't be NULL ! \n " --no-wrap
+                                                data=$(whiptail --inputbox "Enter valid Primary key" 8 39 3>&1 1>&2 2>&3)
 
-                                        if ! [[ $exist -eq 0  ]]
+                                        elif ! [[ $data =~ ^[0-9]+$ ]]
                                         then
-                                            zenity --error --title="Error!" --text="PK already exists! \n " --no-wrap
-                                            data=$(whiptail --inputbox "Enter unique Primary key" 8 39 3>&1 1>&2 2>&3)
-                                            unset exist
-                                        else 
-                                            break 
+                                                zenity --error --title="Error!" --text="Invalid data type! \n " --no-wrap
+                                                data=$(whiptail --inputbox "Enter valid data type (int)" 8 39 3>&1 1>&2 2>&3)
+                                        else
+                                            exist=`(awk -F'|' '{if('$data'==$('$idx'-1)) print $('$idx'-1)}' $Tablename)` 
+                                            if ! [[ $exist -eq 0  ]]
+                                            then
+                                                zenity --error --title="Error!" --text="PK already exists! \n " --no-wrap
+                                                data=$(whiptail --inputbox "Enter unique Primary key" 8 39 3>&1 1>&2 2>&3)
+                                                set exist=0
+                                            else
+                                                break
+                                            fi
                                         fi
                                     done
                                 fi
                                 break
                         ;;
                     *) zenity --error --title="Error!" --text="Invalid data type! \n " --no-wrap
-                        #data=$(zenity --entry --title="Enter valid data type (int)")
                         data=$(whiptail --inputbox "Enter valid data type (int)" 8 39 3>&1 1>&2 2>&3)
                         ;;
                     esac
