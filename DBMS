@@ -236,8 +236,24 @@ function Drop_table
 }
 function DescribeTable
 {
+    SortTableByPk
     cat $Tablename > .TableContent
     whiptail --title "$Tablename" --fb --scrolltext --textbox .TableContent 12 80
+}
+function SortTableByPk
+{
+    let idx=2
+    until [ $idx -gt $noOfCol ]
+      do
+            colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
+            if [[ "$colConstraint" == "PK" ]]
+            then
+                 let m=$idx-1
+                 sort -k $m -n $Tablename > tmp && mv tmp $Tablename
+                break
+            fi
+      ((idx++))
+      done
 }
 #### Auxiliary function, Reading table name from the user #################### 
 function ReadTableNameFromUSer
@@ -306,7 +322,7 @@ function InsertInto
                                                 zenity --error --title="Error!" --text="PK can't be NULL ! \n " --no-wrap
                                                 data=$(whiptail --inputbox "Enter valid Primary key" 8 39 3>&1 1>&2 2>&3)
 
-                                        elif ! [[ $data =~ ^[0-9]+$ ]]
+                                        elif ! [[ $data =~ ^[1-9][0-9]+$ ]]
                                         then
                                                 zenity --error --title="Error!" --text="Invalid data type! \n " --no-wrap
                                                 data=$(whiptail --inputbox "Enter valid data type (int)" 8 39 3>&1 1>&2 2>&3)
