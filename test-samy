@@ -7,34 +7,36 @@ mkdir DBs   # To create directory in the first time .. in the second time it wil
 cd DBs
 clear
 
+########################## DB level ##########################################
 function Create_DB
 { 
     ReadDBNameFromUSer
     if test -d $DBname
     then
-       echo -e "$DBname already exists!\n"
+        zenity --warning --title="Already exists!" --text="$DBname already exists!" --no-wrap
     else
         mkdir $DBname
-        echo -e "Database $DBname has been created successfully!\n"
+        #echo "Database $DBname has been created successfully :)"
+        zenity --info --title="success" --text="Database $DBname has been created successfully :)" --no-wrap
     fi
 
-    MainDB
+    #MainDB
 }
 
-# Gate Functiion
 function Open_DB
 {
     ReadDBNameFromUSer  
     if test -d $DBname
     then
         cd $DBname
-        echo -e "\n>> You are Now in ($DBname) Database\n   Select Your Choice:\n"
-        MainTables $DBname  # Enter into Tables Stage
+        pwd
+        echo "Done."
+        MainTables
     else
-        echo -e "\n$DBname doesn't exist!\n"
+        zenity --error --title="Error!" --text="$DBname doesn't exist!" --no-wrap
     fi
 
-    MainDB
+    #MainDB
 }
 
 function Drop_DB
@@ -42,198 +44,173 @@ function Drop_DB
     ReadDBNameFromUSer
     if [ -d $DBname ]
     then 
-        echo "Are you sure? y|n "
-        read choice
-        if [ $choice = "y" ]
-        then
-            rm -r $DBname
-            echo -e "Database $DBname has been removed successfully!\n\n"
-        else
-            MainDB
-        fi
+        input=$(whiptail --title "Are you sure you want to delete this Database?" --fb --menu "Confirm" 15 50 6 \
+            "1" "yes" \
+            "2" "no"  3>&1 1>&2 2>&3)
+            case $input in
+                    1 )  rm -r $DBname
+                         zenity --info --title="Success" --text="$DBname has been removed successfully" --no-wrap
+                    ;;
+                    2 ) 
+                        clear
+                    ;;
+            esac
     else
-        echo -e "$DBname doesn't exist!\n\n"
+        zenity --error --title="Error!" --text="$DBname doesn't exist!" --no-wrap
     fi  
 
-    MainDB       
+    #MainDB       
 }
 
 function list_DBs
 {
     if [ "$(ls -A)" ]
     then
-        echo -e "Available Database/s: ";ls
-        echo -e "\n"  
+             ls > .listOfDBs
+            whiptail --textbox .listOfDBs 12 80 --title "Available Databases"
+
     else
-        echo "No Databases to show!"
+        zenity --error --title="Error!" --text="No Databases to show!" --no-wrap
     fi
 
-    MainDB 
+    #MainDB 
 }
 
+#### Auxiliary function, Reading Database name from the user ####################
 function ReadDBNameFromUSer
 {
-    echo -e "Enter Database name: \c"
-	read DBname    
+    DBname=$(whiptail --inputbox "Enter Database name" 8 39  --title "Database" 3>&1 1>&2 2>&3)
 }
 
-function MainDB
-{  
-    select choice in 'Create Database' 'Open Database' 'Drop Database' 'List Database' 'Exit'
-    do 
-        case $REPLY in 
-            1 ) Create_DB
-            ;;
-            2 ) Open_DB 
-            ;;
-            3 ) Drop_DB
-            ;;
-            4 ) list_DBs 
-            ;;
-            5 ) clear; exit 0
-            ;;
-            * ) echo -e "Invalid Input :(\n" ; MainDB
-        esac
-        
-    done
-}
-
+##################################  Tables level ###############################################
+ 
 function List_All_Tables
 {
-    ls; MainTables
+    ls > .listOftables
+    whiptail --title "Available Tables" --fb --scrolltext --textbox .listOftables 12 80
+    #MainTables
 }
 
-# Gate Function
 function Open_Certain_table
 {
     ReadTableNameFromUSer
     if [ -f $Tablename ]
     then
-        cat $Tablename
-        Record_stage $Tablename  #Enter into Record Stage
+        #cat $Tablename
+        Record_stage $Tablename
     else
-        echo -e "$Tablename doesn't exist!\n"
+        zenity --error --title="Error!" --text="$Tablename doesn't exist!" --no-wrap
     fi
 
-    MainTables
+    #MainTables
 }
 
 function Create_table
 {
     ReadTableNameFromUSer
+    seperator="|"
+    raw_seperator="\n"
+    pkey=""
+    declare columnsNumber
+    declare -A metaData_data
     if [ -f $Tablename ]
     then
-        echo -e "$Tablename already exist!\n"
+        zenity --error --title="Error!" --text="$Tablename already exist!" --no-wrap
     else
         
         while ! [[ $columnsNumber =~ ^[0-9]+$ ]]
         do
-            echo -e "Number of Columns: \c"
-            read columnsNumber
+           columnsNumber=$(whiptail --inputbox "Enter Number of Columns" 8 39 3>&1 1>&2 2>&3)
         done
-        
-        seperator="|"
-        raw_seperator="\n"
-        pkey=""
 
         metaData_def="Column Name"$seperator"Type"$seperator"Primary Key"
         
         showNumber=1
         for (( counter = 0; counter < $columnsNumber; counter++ ));
         do
-            declare -A metaData_data
             _counter=0
-            echo -e "Name of Column Number "$showNumber": \c"
-            read columnName
+            #echo -e "Name of Column Number "$showNumber": \c"
+            #read columnName
+            columnName=$(whiptail --inputbox "Enter Name of Column Number $showNumber" 8 39 3>&1 1>&2 2>&3)
             ((showNumber++))
             data[$counter]=$columnName
             metaData_data[$counter,$_counter]=$columnName # metaData_data[0,0] = id
             ((_counter++))
 
-            echo -e "Type of Column $columnName: " 
-            select type in "integer" "string"
-            do
-                case $type in
-                    integer ) columnType="int"; 
-                    break
+            input=$(whiptail --title "Type of Column $columnName" --fb --menu "Choose data type" 15 50 6 \
+            "1" "integer" \
+            "2" "string"  3>&1 1>&2 2>&3)
+            case $input in
+                    1 ) 
+                        columnType="int"
                     ;;
-                    string ) columnType="str";
-                    break
+                    2 ) 
+                        columnType="str"
                     ;;
-                    * ) echo "Invalid Input :(" 
-                    ;;
-                esac
-            done
+            esac
+
             metaData_data[$counter,$_counter]=$columnType # metaData_data[0,1] = type(int or str)
             ((_counter++))
-
+             zenity --error --title="Error!" --text="$pKey here!" --no-wrap
             if [[ $pKey == "" ]]; 
             then
-                echo -e "Make Primary Key ?"
-                select var in "yes" "no"
-                do
-                    case $var in
-                        yes ) pKey="PK"; metaData_data[$counter,$_counter]="$pKey";
-                        break
+                input=$(whiptail --title "Would you like to set as Primary Key ?" --fb --menu "Set a PK" 15 50 6 \
+                "1" "yes" \
+                "2" "no"  3>&1 1>&2 2>&3)
+                case $input in
+                     1 ) pKey="PK"; metaData_data[$counter,$_counter]="$pKey";
                         ;;
-                        no ) if [[ $counter -eq $columnsNumber-1 ]]
-                                then
-                                    echo "Your table has NO Primary Key!"
-                                    echo -e "Please Create a new table with a PK ;)\n"
-                                    MainTables
-                                else
-                                    metaData_data[$counter,$_counter]="";
-                                fi
-                        break
+                     2 ) metaData_data[$counter,$_counter]="";
                         ;;
-                        * ) echo "Invalid Input :(" 
-                        ;;
-                    esac
-                done
+                esac
             else
                 metaData_data[$counter,$_counter]="";
             fi
+
         done
         
-        # Print MetaData
-        touch .$Tablename
-        echo -e $metaData_def >> .$Tablename
-        for (( counter = 0; counter < $columnsNumber; counter++ ));
-        do  
-            for (( _counter = 0; _counter < 3; _counter++ ));
-            do
-                if [ $_counter == 2 ]
-                then
-                    echo -n -e "${metaData_data[$counter,$_counter]}" >> .$Tablename
-                else
-                    echo -n -e "${metaData_data[$counter,$_counter]}""$seperator" >> .$Tablename  
-                fi 
-            done  
-            echo -n -e "$raw_seperator" >> .$Tablename  
-        done
+        if [[ $pKey != "" ]]
+        then 
+                # Print MetaData
+                touch .$Tablename
+                echo -e $metaData_def >> .$Tablename
+                for (( counter = 0; counter < $columnsNumber; counter++ ));
+                do  
+                    for (( _counter = 0; _counter < 3; _counter++ ));
+                    do
+                        if [ $_counter == 2 ]
+                        then
+                            echo -n -e "${metaData_data[$counter,$_counter]}" >> .$Tablename
+                        else
+                            echo -n -e "${metaData_data[$counter,$_counter]}""$seperator" >> .$Tablename  
+                        fi 
+                    done  
+                    echo -n -e "$raw_seperator" >> .$Tablename  
+                done
 
-        # Print Actual Data
-        touch $Tablename
-        ((flag=$columnsNumber-1))
-        for (( counter = 0; counter < $columnsNumber; counter++ )); 
-        do
-            if [[ $counter == $flag ]]
-            then
-                echo -n "${data[$counter]}"  >> $Tablename
-                echo -n -e "$raw_seperator" >> $Tablename
-            else
-                echo -n "${data[$counter]}""$seperator" >> $Tablename
-            fi
-        done
-        # Check The Process
-        if [[ $? == 0 ]]
-        then
-            echo -e "Table Created Successfully :)\n"
-        else
-            echo -e "NOT Successful Creation of Table $Tablename :(\n"
+                # Print Actual Data
+                touch $Tablename
+                ((flag=$columnsNumber-1))
+                for (( counter = 0; counter < $columnsNumber; counter++ )); 
+                do
+                    if [[ $counter == $flag ]]
+                    then
+                        echo -n "${data[$counter]}"  >> $Tablename
+                        echo -n -e "$raw_seperator" >> $Tablename
+                    else
+                        echo -n "${data[$counter]}""$seperator" >> $Tablename
+                    fi
+                done
         fi
-    fi      
-    MainTables
+        # Check The Process
+        if [[ $? == 0 && $pKey != "" ]]
+        then
+            zenity --info --title="Completed!" --text="Table Created Successfully :)" --no-wrap
+        else
+            zenity --error --title="Error" --text="NOT Successful Creation of Table $Tablename ! \n You must set a column as a primary key" --no-wrap
+        fi
+    fi   
+    unset pKey   
 }
 
 function Drop_table
@@ -241,33 +218,305 @@ function Drop_table
     ReadTableNameFromUSer
     if [ -f $Tablename ]
     then 
-        echo "Are you sure? y|n "
-        read choice
-        if [ $choice = "y" ]
-        then
-            rm $Tablename .$Tablename
-            echo -e "$Tablename Table has been removed successfully :)\n\n"
-        else
-            clear; MainTables
-        fi
+        input=$(whiptail --title "Are you sure you want to delete this table?" --fb --menu "Confirm" 15 50 6 \
+            "1" "yes" \
+            "2" "no"  3>&1 1>&2 2>&3)
+            case $input in
+                    1 )  rm $Tablename .$Tablename
+                         zenity --info --title="Success" --text="$Tablename Table has been removed successfully :)" --no-wrap
+                    ;;
+                    2 ) 
+                        clear
+                    ;;
+            esac
     else
-        echo -e "$Tablename Table doesn't exist!\n\n"
+        zenity --error --title="Error!" --text="$Tablename Table doesn't exist!" --no-wrap
     fi  
 
-    MainTables
+   # MainTables
 }
-
+function DescribeTable
+{
+    awk -F "|" '{for(i=1;i<=NF;i++){printf "%-10s", $i};printf "\n"}' $Tablename > .TableContent
+    #cat $Tablename > .TableContent
+    whiptail --title "$Tablename" --fb --scrolltext --textbox .TableContent 12 80
+}
+#### Auxiliary function, Reading table name from the user #################### 
 function ReadTableNameFromUSer
 {
-    echo -e "Enter Table name: \c"
-	read Tablename
+    Tablename=$(whiptail --inputbox "Enter Table name" 8 39 3>&1 1>&2 2>&3)
+}
+
+################################# Record level #########################################
+function InsertInto
+{
+      Tablename=$1
+      row=""
+      if ! [ -f $Tablename ]
+      then 
+           zenity --error --title="Error!" --text="Table $Tablename doesn't exist!" --no-wrap
+      else
+      #Get num of rows stored in metadata file which represents the num of columns
+      noOfCol=`(awk -F: 'END{print NR}' .$Tablename)`
+      idx=2
+      fs="|"
+      colName=""
+      colType=""
+      colConstraint=""
+      until [ $idx -gt $noOfCol ]
+      do
+         colName=`(awk -F'|' '{if(NR=='$idx') print $1}' .$Tablename)`
+         colType=`(awk -F'|' '{if(NR=='$idx') print $2 }' .$Tablename)` 
+         colConstraint=`(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)`
+         data=$(whiptail --inputbox "Enter data of column $colName" 8 39 3>&1 1>&2 2>&3)
+         #Validate data type 
+         if [[ "$colType" == "str" ]]   
+         then
+           while [[ true ]]
+            do
+                if [[ -z "$data" ]]
+                then
+                      zenity --error --title="Error!" --text="Empty string! \n " --no-wrap
+                      data=$(whiptail --inputbox "Enter valid data (string)" 8 39 3>&1 1>&2 2>&3)
+                else 
+                    case $data in
+                        +([a-zA-Z]) )
+                            break
+                            ;;
+                        *)
+                            zenity --error --title="Error!" --text="Invalid data type! \n " --no-wrap
+                            data=$(whiptail --inputbox "Enter valid data type (string)" 8 39 3>&1 1>&2 2>&3)
+                            ;;
+                        esac
+                fi
+            done
+         elif [[ "$colType" == "int" ]]
+         then
+           while [[ true ]]
+            do
+                case $data in 
+                    +([0-9]) )
+                            # Check if the entered PK already exists
+                                if [[ "$colConstraint" == "PK" ]]
+                                then
+                                    flag2=1
+                                    let exist=0
+                                    while [[ true ]]
+                                    do
+                                        if [[ -z "$data" ]]
+                                        then 
+                                                zenity --error --title="Error!" --text="PK can't be NULL ! \n " --no-wrap
+                                                data=$(whiptail --inputbox "Enter valid Primary key" 8 39 3>&1 1>&2 2>&3)
+
+                                        elif ! [[ $data =~ ^[0-9]+$ ]]
+                                        then
+                                                zenity --error --title="Error!" --text="Invalid data type! \n " --no-wrap
+                                                data=$(whiptail --inputbox "Enter valid data type (int)" 8 39 3>&1 1>&2 2>&3)
+                                        else
+                                            exist=`(awk -F'|' '{if('$data'==$('$idx'-1)) print $('$idx'-1)}' $Tablename)` 
+                                            if ! [[ $exist -eq 0  ]]
+                                            then
+                                                zenity --error --title="Error!" --text="PK already exists! \n " --no-wrap
+                                                data=$(whiptail --inputbox "Enter unique Primary key" 8 39 3>&1 1>&2 2>&3)
+                                                set exist=0
+                                            else
+                                                break
+                                            fi
+                                        fi
+                                    done
+                                fi
+                                break
+                        ;;
+                    *) zenity --error --title="Error!" --text="Invalid data type! \n " --no-wrap
+                        data=$(whiptail --inputbox "Enter valid data type (int)" 8 39 3>&1 1>&2 2>&3)
+                        ;;
+                    esac
+            done
+        fi
+         
+        # Set row data
+        if ! [ $idx -eq $noOfCol ]
+        then
+            row=$row$data$fs  
+        else
+            row=$row$data
+        fi
+        ((idx++))
+      done
+     
+      echo $row >> $Tablename
+      if [ $? -eq 0 ]
+        then 
+            zenity --info --title="Success" --text="Data inserted successfully \n " --no-wrap
+            #echo "Data inserted successfully"
+        else
+            zenity --error --title="Error" --text="Filed to insert data \n " --no-wrap
+            #echo "Error !"
+        fi
+      fi
+}
+
+function delete_record
+{
+   Tablename=$1
+   let idx=2
+   #pk=$(zenity --entry --title="Enter PK of the record you want to delete")
+   pk=$(whiptail --inputbox "Enter PK of the record you want to delete" 8 39 3>&1 1>&2 2>&3)
+   noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+   until [ $idx -gt $noOfCol ]
+    do
+         colConstraint=$(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)
+         if [[ "$colConstraint" == "PK" ]]
+        then
+            # GET the Record number using the PK 
+            #check the entered Pk with all values by feild number 'idx'-1
+            recordnumber=$(awk -F'|' '{if($('$idx'-1)=='$pk') print NR}' $Tablename)
+            # Check if the entered PK exist? "Delete" : "not found!" 
+            if [[ "$recordnumber" =~ ^[0-9]+$ ]]
+            then
+                 input=$(whiptail --title "Are you sure you want to delete this record?" --fb --menu "Confirm deletion" 15 50 6 \
+                "1" "yes" \
+                "2" "no"  3>&1 1>&2 2>&3)
+                case $input in
+                        1 ) 
+                            # Delete the record using the record number, then redirect to a new file and rename its name with table name :)
+                            awk -v n=$recordnumber 'NR == n {next} {print}' $Tablename > tmp && mv tmp $Tablename
+                        ;;
+                        2 ) 
+                            zenity --warning --title="Warning" --text="Terminating without deleting" --no-wrap
+                            break
+                        ;;
+                esac
+            else
+                zenity --error --title="Error!" --text="$pk doesn't exist!" --no-wrap
+                break
+            fi
+            if [ $? -eq 0 ]
+            then 
+                zenity --info --title="Success" --text="Record has been deleted successfully" --no-wrap
+            else
+                 zenity --error --title="Error!" --text="Error deleting the record!" --no-wrap
+            fi
+            break
+        fi
+
+    ((idx++))
+    done
+}
+
+function Update_cell
+{
+   Tablename=$1
+   let idx=2
+   updateType=""
+   let colFound=0
+   colName=""
+   declare pk
+   declare recordnumber
+   declare colname=$(whiptail --inputbox "Enter column name you want to update" 8 39 3>&1 1>&2 2>&3)
+   declare noOfCol=$(awk -F: 'END{print NR}' .$Tablename)
+
+   input=$(whiptail --title "Would you like to update by primary key ?" --fb --menu "Update options" 15 50 6 \
+        "1" "yes" \
+        "2" "no"  3>&1 1>&2 2>&3)
+        case $input in
+                1 ) updateType="y"
+                    pk=$(whiptail --inputbox "Enter PK of the record you want to update" 8 39 3>&1 1>&2 2>&3)
+                    newValue=$(whiptail --inputbox "Enter new value" 8 39 3>&1 1>&2 2>&3)
+                ;;
+                2 ) updateType="n"
+                    oldValue=$(whiptail --inputbox "Enter old value" 8 39 3>&1 1>&2 2>&3)
+                    newValue=$(whiptail --inputbox "Enter new value" 8 39 3>&1 1>&2 2>&3)
+                ;;
+        esac
+   until [ $idx -gt $noOfCol ]
+    do
+        colName=$(awk -F'|' '{if(NR=='$idx') print $1}' .$Tablename)
+        colConstraint=$(awk -F'|' '{if(NR=='$idx') print $3}' .$Tablename)
+
+        if [[ "$updateType" == "y" ]]
+        then
+            if [[ "$colConstraint" == "PK" ]]
+            then
+                recordnumber=$(awk -F'|' '{if($('$idx'-1)=='$pk') print NR}' $Tablename)
+                if ! [[ "$recordnumber" =~ ^[0-9]+$ ]]
+                then
+                      zenity --error --title="Error!" --text="$pk doesn't exist!" --no-wrap
+                      break 
+
+                fi
+            fi
+        fi
+
+        if [[ "$colName" == "$colname" ]]
+        then
+                ((colFound++))
+                if [[ "$colConstraint" == "PK" ]]
+                then
+                        zenity --error --title="Error!" --text="It is not allowed to update a Primary key" --no-wrap
+                        break
+                fi
+                
+                if [[ "$updateType" == "n"  ]]
+                then
+                    awk -F'|' -v new=$newValue -v old=$oldValue '$('$idx'-1)==old {$('$idx'-1)=new} {print}' OFS='|' $Tablename > tmp && mv tmp $Tablename
+                else        
+                     awk -F'|' -v new=$newValue 'NR=='$recordnumber'{$('$idx'-1)=new} {print}' OFS='|' $Tablename > tmp && mv tmp $Tablename
+                fi
+             
+            break
+        fi
+
+    ((idx++))
+    done
+    if [[ $colFound -gt 0 ]]
+    then 
+        zenity --info --title="Success!" --text="Cell updated successfully" --no-wrap
+    else
+        zenity --info --title="Success!" --text="$colname doesn't exist!" --no-wrap
+    fi
+
+}
+function MainDB
+{  
+    while input=$(whiptail --title "Database Menu" --menu "Choose an option" 15 50 6 \
+    "1" "Create Database" \
+    "2" "Open Database" \
+    "3" "Drop Database"  \
+    "4" "List Database"   \
+    "5" "Exit" 3>&1 1>&2 2>&3 )
+    do
+    case $input in
+            1 ) 
+                Create_DB
+            ;;
+            2 ) 
+                Open_DB 
+            ;;
+            3 ) 
+                Drop_DB
+            ;;
+            4 ) 
+                list_DBs 
+            ;;
+            5 ) 
+                clear; exit 0
+            ;;
+    esac
+    done
 }
 
 function MainTables
 {
-    select choice in 'List All Tables' 'Open Certain Table' 'Create Table' 'Drop Table' 'Back to DB Menu' 'Exit'
+    while input=$(whiptail --title "Tables Menu" --menu "Choose an option" 15 50 6 \
+    "1" "List All Tables"  \
+    "2" "Open Certain Table"  \
+    "3" "Create Table"   \
+    "4" "Drop Table"    \
+    "5" "Back to DB Menu"  \
+    "6" "Exit" 3>&1 1>&2 2>&3)
     do
-        case $REPLY in 
+    case $input in
             1 ) List_All_Tables 
             ;;
             2 ) Open_Certain_table 
@@ -280,8 +529,37 @@ function MainTables
             ;;
             6 ) clear; exit 0
             ;;
-            * ) echo -e "Invalid Input :(\n" ; MainTables  
-        esac
-        
+    esac
     done
 }
+function Record_stage
+{
+    Tablename=$1
+    while input=$(whiptail --title "Records Menu" --menu "Choose an option" 15 50 6 \
+     "1" "Show table" \
+    "2" "Insert New Record"  \
+    "3" "Delete Record"  \
+    "4" "Update Certain Cell"  \
+    "5" "Back to Tables Menu"   \
+    "6" "Exit" 3>&1 1>&2 2>&3 )
+    do  #read input
+    case $input in
+            1 ) DescribeTable $Tablename
+            ;;
+            2 ) InsertInto $Tablename
+            ;;
+            3 ) delete_record $Tablename
+            ;;
+            4 ) Update_cell $Tablename
+            ;; 
+            5 ) clear; MainTables  
+            ;;
+            6 ) clear; exit 0
+            ;;
+    esac
+    done
+    
+}
+
+
+MainDB
