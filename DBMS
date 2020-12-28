@@ -20,7 +20,6 @@ function Create_DB
         zenity --info --title="success" --text="Database $DBname has been created successfully :)" --no-wrap
     fi
 
-    #MainDB
 }
 
 function Open_DB
@@ -36,7 +35,6 @@ function Open_DB
         zenity --error --title="Error!" --text="$DBname doesn't exist!" --no-wrap
     fi
 
-    #MainDB
 }
 
 function Drop_DB
@@ -58,8 +56,7 @@ function Drop_DB
     else
         zenity --error --title="Error!" --text="$DBname doesn't exist!" --no-wrap
     fi  
-
-    #MainDB       
+     
 }
 
 function list_DBs
@@ -101,7 +98,6 @@ function Open_Certain_table
         zenity --error --title="Error!" --text="$Tablename doesn't exist!" --no-wrap
     fi
 
-    #MainTables
 }
 
 function Create_table
@@ -232,12 +228,12 @@ function Drop_table
         zenity --error --title="Error!" --text="$Tablename Table doesn't exist!" --no-wrap
     fi  
 
-   # MainTables
 }
 function DescribeTable
 {
     SortTableByPk
-    cat $Tablename > .TableContent
+    awk -F "|" '{for(i=1;i<=NF;i++){printf "%-10s", $i};printf "\n"}' $Tablename > .TableContent
+    #cat $Tablename > .TableContent
     whiptail --title "$Tablename" --fb --scrolltext --textbox .TableContent 12 80
 }
 function SortTableByPk
