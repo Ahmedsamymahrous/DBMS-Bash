@@ -40,5 +40,5 @@ DBMS-Bash
   
   # ScreenShots
 
-![alt text](https://github.com/Ahmedsamymahrous/DBMS-Bash/blob/main/Screenshot%20from%202021-01-01%2015-29-30.png)
+![alt text](https://drive.google.com/drive/folders/1bHhz8su2O-l-J6xjy4MViKtnatFSnBhP)
 
