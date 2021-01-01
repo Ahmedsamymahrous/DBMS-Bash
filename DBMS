@@ -232,7 +232,7 @@ function Drop_table
 function DescribeTable
 {
     SortTableByPk
-    awk -F "|" '{for(i=1;i<=NF;i++){printf "|%-10s", $i};printf "\n"}' $Tablename > .TableContent
+    awk -F "|" '{for(i=1;i<=NF;i++){printf "%-10s", $i};printf "\n"}' $Tablename > .TableContent
     #cat $Tablename > .TableContent
     whiptail --title "$Tablename" --fb --scrolltext --textbox .TableContent 12 80
 }
@@ -464,6 +464,8 @@ function Update_cell
                 if [[ "$colConstraint" == "PK" ]]
                 then
                         zenity --error --title="Error!" --text="It is not allowed to update a Primary key" --no-wrap
+                        unset colFound
+                        colFound=0
                         break
                 fi
                 
@@ -483,7 +485,7 @@ function Update_cell
     then 
         zenity --info --title="Success!" --text="Cell updated successfully" --no-wrap
     else
-        zenity --info --title="Success!" --text="$colname doesn't exist!" --no-wrap
+        zenity --error --title="Error!" --text="Error updating $colname" --no-wrap
     fi
 
 }
@@ -573,4 +575,3 @@ function Record_stage
 
 
 MainDB
-
