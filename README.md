@@ -40,5 +40,5 @@ DBMS-Bash
   
   # ScreenShots
 
-![alt text](https://drive.google.com/drive/folders/1bHhz8su2O-l-J6xjy4MViKtnatFSnBhP)
+![alt text](https://drive.google.com/file/d/1QcuCG8Kg1TDZ2l5yQWLwOSouV2fPajNl/view?usp=sharing)
 
