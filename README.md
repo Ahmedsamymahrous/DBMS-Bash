@@ -38,7 +38,4 @@ DBMS-Bash
   - Enter dublicate *primary key*.
   - Insert DB name or Table name that you already added *(Ex: Two DBs with the same name)*.
   
-  # ScreenShots
-
-![alt text](https://drive.google.com/file/d/1k9Lr9d21EqiZil6bGdJjiwloo4FZTqa1/view?usp=sharing)
-
+  
