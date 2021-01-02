@@ -232,7 +232,7 @@ function Drop_table
 function DescribeTable
 {
     SortTableByPk
-    awk -F "|" '{for(i=1;i<=NF;i++){printf "%-10s", $i};printf "\n"}' $Tablename > .TableContent
+    awk -F "|" '{for(i=1;i<=NF;i++){printf "|%-10s", $i};printf "\n"}' $Tablename > .TableContent
     #cat $Tablename > .TableContent
     whiptail --title "$Tablename" --fb --scrolltext --textbox .TableContent 12 80
 }
