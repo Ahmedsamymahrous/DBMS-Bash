@@ -33,7 +33,7 @@ DBMS-Bash
   * In this simple GUI you will use *Arrows Keys*.
   * If you are in *Show table* option (in the record level) .. to press *Ok* .. you will need to press *Tab* first and then press *Ok*.
   
-   :warning: **DBMS will prevent you to do the following:**
+   **DBMS will prevent you to do the following** :warning:
    * Enter (0) in the *primary key* field 
    * Enter dublicate *primary key* 
    * Insert DB name or Table name that you already added *(Ex: Two DBs with the same name)* 
