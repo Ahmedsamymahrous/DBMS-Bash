@@ -146,7 +146,7 @@ function Create_table
 
             metaData_data[$counter,$_counter]=$columnType # metaData_data[0,1] = type(int or str)
             ((_counter++))
-             zenity --error --title="Error!" --text="$pKey here!" --no-wrap
+             #zenity --error --title="Error!" --text="$pKey here!" --no-wrap
             if [[ $pKey == "" ]]; 
             then
                 input=$(whiptail --title "Would you like to set as Primary Key ?" --fb --menu "Set a PK" 15 50 6 \
@@ -318,7 +318,7 @@ function InsertInto
                                                 zenity --error --title="Error!" --text="PK can't be NULL ! \n " --no-wrap
                                                 data=$(whiptail --inputbox "Enter valid Primary key" 8 39 3>&1 1>&2 2>&3)
 
-                                        elif ! [[ $data =~ ^[1-9][0-9]+$ ]]
+                                        elif ! [[ $data =~ ^[1-9][0-9]*$ ]]
                                         then
                                                 zenity --error --title="Error!" --text="Invalid data type! \n " --no-wrap
                                                 data=$(whiptail --inputbox "Enter valid data type (int)" 8 39 3>&1 1>&2 2>&3)
